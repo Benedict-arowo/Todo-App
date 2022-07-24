@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@200;400;500;600&family=Rosario:wght@300;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <title>ToDO App</title>
+</head>
+<body>
+    <main>
+        <div id="errDisplay" class="errDisplay">
+            <div class="container">
+                <p id="err">Error</p>
+            </div>
+        </div>
+        <div id="editItem">
+            <div class="container">
+                <p id="editingItemName">Editing Item 1</p>
+                <textarea name="Edited Item" id="editedItem" cols="26" rows="13">221</textarea>
+                <button type="button" id="doneBtn">Done</button>
+            </div>
+        </div>
+        <div class="hamburger" id="menu">
+            <div class="" id="1"></div>
+            <div class="" id="2"></div>
+            <div class="" id="3"></div>
+        </div>
+        <div class="visible">
+            <section id="newTodoSection">
+                <div class="container">
+                    <h1>ToDO List</h1>
+                    <div id="newTodo">
+                        <input type="text" name="New Todo Content" id="newTodoContent" placeholder="New todo item goes here..">
+                        <div class="btnContainer">
+                            <button type="button" id="addItem">Add Item</button>
+                        </div>
+                    </div>
+                    <div class="stats">
+                        <h2>Stats</h2>
+                        <p>Items: <span class="value" id="items">value</span></p>
+                        <p>Completed: <span class="value" id="completed">value</span></p>
+                        <p>Pending: <span class="value" id="pending">value</span></p>
+                        <p>Pinned: <span class="value" id="pinned">value</span></p>
+                    </div>
+                    <a href="">Made by Snowine</a>
+                </div>
+            </section>
+
+            <section id="todoSection">
+                <div id="tab">
+                    <ul>
+                        <li class="tabItem activeTab">All</li>
+                        <li class="tabItem">Completed</li>
+                        <li class="tabItem">Pending</li>
+                    </ul>
+                    <p id="noItem">There are no items in this category</p>
+                </div>
+                <div id="todoContainer" class="todoContainer">
+                </div>
+            </section>
+        </div>
+
+    </main>
+    <script src="app.js"></script>
+</body>
+</html>
