@@ -18,7 +18,9 @@ const statsPinned = document.getElementById('pinned');
 
 
 let currentTab = 'All';
+let lastTab = '';
 let todoItems = [];
+let displayedItems = [];
 let test;
 
 const ErrDisplay = (errMsg) => {
@@ -29,6 +31,12 @@ const ErrDisplay = (errMsg) => {
     }, 3000)
 }
 
+newTodo.addEventListener('keydown', e => {
+    if (e.key == 'Enter') {
+        addItem()
+    }
+}) 
+
 const editItemFunc = (event) => {
     event = event.target.parentElement.parentElement
     todoItems[event.dataset.id].editItem(event);
@@ -37,17 +45,23 @@ const editItemFunc = (event) => {
 
 tabs.forEach(tab => {
     tab.addEventListener('click', e => {
-        tabs.forEach(tab => {
-            tab.classList.remove('activeTab');
-        })
-        currentTab = e.target.textContent;
-        e.target.classList.add('activeTab');
-        render();
-    })
-})
+            lastTab = currentTab;
+            tabs.forEach(tab => {
+                tab.classList.remove('activeTab');
+            })
+            currentTab = e.target.textContent;
+            e.target.classList.add('activeTab');
+
+            if(!(lastTab == currentTab)) {
+                render();
+            }
+        }
+    )}
+)
 
 
-const createNewItem = (itemContent, itemId, itemStatus) => {
+
+const createNewItem = (itemContent, itemId, itemStatus, pinned) => {
     const newItem = document.createElement('div')
     newItem.classList.add('todoItem')
     newItem.setAttribute('data-id', itemId)
@@ -57,6 +71,7 @@ const createNewItem = (itemContent, itemId, itemStatus) => {
 <p>Completed</p>
 </div>
 </div>
+<div class="pin"></div>
 <div class="controls">
 <button type="button" class="editTodoItem">Edit</button>
 <div class="icons">
@@ -73,7 +88,22 @@ const createNewItem = (itemContent, itemId, itemStatus) => {
 </div>`
     newItem.querySelector('.checkMark').addEventListener('click', e => {
         e = e.target.parentElement.parentElement.parentElement
-        todoItems[e.dataset.id].toggleStatus(e);
+        displayedItems[e.dataset.id].toggleStatus(e);
+    })
+
+    newItem.querySelector('.pin').addEventListener('click', e => {
+        e = e.target
+        let itemId = e.parentElement.dataset.id
+        if (e.style.backgroundColor == 'white' || e.style.backgroundColor == ''){
+            e.style.backgroundColor = 'red';
+            e.style.border = '2px solid red';
+            todoItems[itemId].pin(itemId)
+        }
+        else {
+            e.style.backgroundColor = 'white'
+            e.style.border = '2px solid white'
+            todoItems[itemId].unpin(itemId)
+        }
     })
 
     newItem.querySelector('.xMark').addEventListener('click', e => {
@@ -90,11 +120,73 @@ const createNewItem = (itemContent, itemId, itemStatus) => {
     })
 
     newItem.querySelector('.editTodoItem').addEventListener('click', editItemFunc)
+    todoItems[itemId].id = itemId
 
     return newItem
 }
 
+const todoList = (itemContent, itemStatus, itemId, pinned) => {
+
+    (() => {
+        todoItems.push({
+            id: itemId,
+            content: itemContent,
+            itemStatus: itemStatus,
+            pinned: pinned,
+
+            deleteItem: function deleteItem() {
+                todoItems.splice(itemId, 1);
+                saveLocally()
+            },
+            toggleStatus: (parent) => {
+                let item = displayedItems[parent.dataset.id]
+                let editItemBtn = parent.querySelector('.editTodoItem')
+                if (item.itemStatus == true) {
+                    item.itemStatus = false;
+                    parent.querySelector('.completeOverlay').classList.remove('show')
+                    editItemBtn.classList.remove('completed')
+                    editItemBtn.textContent = 'Edit'
+                    editItemBtn.addEventListener('click', editItemFunc)
+                    
+                } 
+                else {
+                    item.itemStatus = true;
+                    parent.querySelector('.completeOverlay').classList.add('show')
+                    editItemBtn.classList.add('completed')
+                    editItemBtn.textContent = '✔️'
+                    editItemBtn.removeEventListener('click', editItemFunc)
+                }
+                render()
+            },
+            editItem: (parent) => {
+                    let item = displayedItems[parent.dataset.id]
+                    editItem.classList.add('show');
+                    editingItemName.textContent = `Currently editing item ${parseInt(parent.dataset.id) + 1}`
+                    editItem.dataset.id = parent.dataset.id;
+                    editItemText.value = item.content;
+                    render()
+            },
+            pin: (id) => {
+                displayedItems[id].pinned = true
+                let temp = todoItems.splice(id, 1);
+                todoItems.unshift(temp[0])
+                render()
+            },
+            unpin: (id) => {
+                displayedItems[id].pinned = false
+                let temp = todoItems.splice(id, 1)
+                todoItems.push(temp[0]);
+                render()
+            } 
+        });
+        const newItem = createNewItem(itemContent, itemId, itemStatus, pinned);
+        todoContainer.appendChild(newItem);
+        render();
+    })();        
+}
+
 const render = (tabName) => {
+        let items;
         if (currentTab == 'Completed') {
             let newItem = todoItems.filter(item => item.itemStatus)
             items = newItem
@@ -108,7 +200,6 @@ const render = (tabName) => {
         }
 
         todoContainer.innerHTML = '';
-        let id = 0;
         if (items.length == 0) {
             noItems.classList.remove('hide')
             if (currentTab == 'All'){
@@ -119,73 +210,48 @@ const render = (tabName) => {
             }
         }
         else {
-        items.map(item => {
-            noItems.classList.add('hide');
-            const newItem = createNewItem(item.content, id, item.status)
-            let editItemBtn = newItem.querySelector('.editTodoItem')
-            if (item.itemStatus) {
-                newItem.querySelector('.completeOverlay').classList.add('show')
-                editItemBtn.classList.add('completed')
-                editItemBtn.textContent = '✔️'
-                editItemBtn.removeEventListener('click', editItemFunc)
-            }
-            todoContainer.appendChild(newItem)
-            id++
-        })
-    }
-    statsItems.textContent = todoItems.length
-    statsCompleted.textContent = todoItems.filter(items => items.itemStatus).length
-    statsPending.textContent = todoItems.filter(items => !items.itemStatus).length
-    saveLocally()
-}
-    
+            displayedItems = [];
+            items.forEach((item) => {
+                if (item.pinned == true){
+                    displayedItems.unshift(item)
+                }
+                else {
+                    displayedItems.push(item);
+                }
+            })
 
-const todoList = (itemContent, itemStatus, itemId) => {
-
-
-    (addItem = () => {
-        todoItems.push({
-            id: itemId,
-            content: itemContent,
-            itemStatus: itemStatus,
-            deleteItem: function deleteItem() {
-                todoItems.splice(itemId, 1);
-                saveLocally()
-            },
-            toggleStatus: (parent) => {
-                let item = todoItems[parent.dataset.id]
-                let editItemBtn = parent.querySelector('.editTodoItem')
-                if (item.itemStatus == true) {
-                    item.itemStatus = false;
-                    parent.querySelector('.completeOverlay').classList.remove('show')
-                    editItemBtn.classList.remove('completed')
-                    editItemBtn.textContent = 'Edit'
-                    editItemBtn.addEventListener('click', editItemFunc)
-                    
-                } else {
-                    item.itemStatus = true;
-                    parent.querySelector('.completeOverlay').classList.add('show')
+            let newid = 0;
+            displayedItems.map(item => {
+                noItems.classList.add('hide');
+                displayedItems.push(item);
+                displayedItems[newid].id = newid
+                const newItem = createNewItem(item.content, newid, item.status, item.pinned)
+                let editItemBtn = newItem.querySelector('.editTodoItem')
+                if (item.itemStatus) {
+                    newItem.querySelector('.completeOverlay').classList.add('show')
                     editItemBtn.classList.add('completed')
                     editItemBtn.textContent = '✔️'
                     editItemBtn.removeEventListener('click', editItemFunc)
                 }
-                render()
-            },
-            editItem: (parent) => {
-                    let item = todoItems[parent.dataset.id]
-                    editItem.classList.add('show');
-                    editingItemName.textContent = `Currently editing item ${parseInt(parent.dataset.id) + 1}`
-                    editItem.dataset.id = parent.dataset.id;
-                    editItemText.value = item.content;
-                    render()
-            }
-        });
+                if (item.pinned) {
+                    let temp = newItem.children[1]
+                    temp.style.backgroundColor = 'red';
+                    temp.style.border = '2px solid red';
+                }
 
-        const newItem = createNewItem(itemContent, itemId, itemStatus);
-        todoContainer.appendChild(newItem);
-        render();
-    })();        
+                todoContainer.appendChild(newItem)
+                newid++
+            })
+    }
+    statsItems.textContent = todoItems.length
+    statsCompleted.textContent = todoItems.filter(items => items.itemStatus).length
+    statsPending.textContent = todoItems.filter(items => !items.itemStatus).length
+    statsPinned.textContent = todoItems.filter(items => items.pinned).length;
+    saveLocally()
 }
+    
+
+
 
 editDoneBtn.addEventListener('click', e => {
     let item = todoItems[editItem.dataset.id]
@@ -199,7 +265,9 @@ editDoneBtn.addEventListener('click', e => {
     editItem.classList.remove('show');    
 })
 
-addItemBtn.addEventListener('click', e => {
+addItemBtn.addEventListener('click', e => addItem())
+
+const addItem = () => {
     if (newTodo.value.length <= 3) {
         let err = 'Input length is too low!'
         ErrDisplay(err)
@@ -210,24 +278,32 @@ addItemBtn.addEventListener('click', e => {
     }
     else {
         let itemContent = newTodo.value;
-        todoList(itemContent, false, todoItems.length);
+        todoList(itemContent, false, todoItems.length, false);
         newTodo.value = '';
+
+        if (addTodoSection.classList.contains('showMenu')) {
+            addTodoSection.classList.remove('showMenu')    
+            todoSection.style.display = 'block'
+        }
     }
     saveLocally()
-})
+}
 
 
-saveLocally = () => {
+const saveLocally = () => {
     localStorage.setItem('todoItems', JSON.stringify(todoItems))
 }
 
 
 if (localStorage.getItem('todoItems')) {
-    savedItems = JSON.parse(localStorage.getItem('todoItems'));
+    let savedItems = JSON.parse(localStorage.getItem('todoItems'));
     savedItems.map(item => {
         item.id = todoItems.length;
-        let {content, itemStatus} = item;
-        todoList(content, itemStatus, todoItems.length);
+        let {content, itemStatus, pinned} = item;
+        if (!pinned) {
+            pinned = false
+        }
+        todoList(content, itemStatus, todoItems.length, pinned);
     })
     render()
 }
@@ -243,23 +319,23 @@ const three = document.getElementById('3');
 menu.addEventListener('click', e => {
     if (addTodoSection.classList.contains('showMenu')){
         addTodoSection.classList.remove('showMenu')    
-        todoSection.style.display = 'block'
+        todoSection.style.cssText = 'display: initial;';
         one.style.cssText = ''
         two.style.cssText = ''
         three.style.cssText = ''
     }
     else {
         addTodoSection.classList.add('showMenu')    
-        todoSection.style.display = 'none';
+        todoSection.style.cssText = 'display: none;';
         one.style.cssText = 'transform: rotate(125deg); position: absolute; top: 15px; left: -6px;'
         two.style.cssText = 'display: none;'
         three.style.cssText = 'transform: rotate(-130deg); position: absolute; top: 15px; left: -6px;'
     }
 })
 
-window.addEventListener('resize', e => {
-    if (window.innerWidth < 1062) {
-        addTodoSection.classList.remove('showMenu')    
-        todoSection.style.display = 'block'
-    }
-})
+// window.addEventListener('resize', e => {
+//     if (window.innerWidth < 1062) {
+//         addTodoSection.classList.remove('showMenu')    
+//         todoSection.style.display = 'block'
+//     }
+// })
